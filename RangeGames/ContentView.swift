@@ -9,53 +9,46 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @Query var targets: [Target]
+    @State private var showingAddTarget = false
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+        NavigationStack {
+            VStack {
+                if targets.isEmpty {
+                    ContentUnavailableView("No Targets", systemImage: "scope", description: Text("Tap + to add your first target"))
+                } else {
+                    List {
+                        ForEach(targets) { target in
+                            HStack {
+                                Text(target.name)
+                                Spacer()
+                                Text("\(target.distance) yd")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
                     }
                 }
-                .onDelete(perform: deleteItems)
+
+                NavigationLink("Start Driving Range Game") {
+                    DrivingRangeGameView(targets: targets)
+                }                .buttonStyle(.borderedProminent)
+                .padding()
+                .disabled(targets.count < 3)
             }
+            .navigationTitle("Targets")
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showingAddTarget = true
+                    } label: {
+                        Label("Add Target", systemImage: "plus")
                     }
                 }
             }
-        } detail: {
-            Text("Select an item")
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+            .sheet(isPresented: $showingAddTarget) {
+                AddTargetView()
             }
         }
     }
-}
-
-#Preview {
-    ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
 }
